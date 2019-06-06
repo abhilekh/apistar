@@ -23,4 +23,4 @@ def test_openapi(filename):
 
     path, extension = os.path.splitext(filename)
     encoding = {".json": "json", ".yaml": "yaml"}[extension]
-    apistar.validate(content, format="swagger", encoding=encoding)
+    apistar.validate(content, out_format="swagger", encoding=encoding)

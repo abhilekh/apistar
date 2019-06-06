@@ -52,7 +52,7 @@ paths:
           type: string
 """
 
-apistar.validate(schema, format='openapi', encoding="yaml")
+apistar.validate(schema, out_format='openapi', encoding="yaml")
 ```
 
 Function signature: `validate(schema, format=None, encoding=None)`

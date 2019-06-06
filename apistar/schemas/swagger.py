@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 import typesystem
 from apistar.document import Document, Field, Link, Section
 from apistar.schemas.jsonschema import JSON_SCHEMA
+import apistar.schemas.util as sutil
 
 SCHEMA_REF = typesystem.Object(
     properties={"$ref": typesystem.String(pattern="^#/definitiions/")}
@@ -59,6 +60,7 @@ SWAGGER = typesystem.Object(
 definitions["Info"] = typesystem.Object(
     properties={
         "title": typesystem.String(allow_blank=True),
+        "product": typesystem.String(allow_blank=True),
         "description": typesystem.Text(allow_blank=True),
         "termsOfService": typesystem.String(format="url"),
         "contact": typesystem.Reference("Contact", definitions=definitions),
@@ -142,7 +144,7 @@ definitions["Operation"] = typesystem.Object(
 
 definitions["ExternalDocumentation"] = typesystem.Object(
     properties={
-        "description": typesystem.Text(),
+        "description": typesystem.Text(allow_blank=True),
         "url": typesystem.String(format="url"),
     },
     pattern_properties={"^x-": typesystem.Any()},
@@ -317,13 +319,13 @@ definitions["Scopes"] = typesystem.Object(
 METHODS = ["get", "put", "post", "delete", "options", "head", "patch", "trace"]
 
 
-def lookup(value, keys, default=None):
-    for key in keys:
-        try:
-            value = value[key]
-        except (KeyError, IndexError, TypeError):
-            return default
-    return value
+# def lookup(value, keys, default=None):
+#     for key in keys:
+#         try:
+#             value = value[key]
+#         except (KeyError, IndexError, TypeError):
+#             return default
+#     return value
 
 
 def _simple_slugify(text):
@@ -336,13 +338,14 @@ def _simple_slugify(text):
 
 
 class Swagger:
-    def load(self, data):
-        title = lookup(data, ["info", "title"])
-        description = lookup(data, ["info", "description"])
-        version = lookup(data, ["info", "version"])
-        host = lookup(data, ["host"])
-        path = lookup(data, ["basePath"], "/")
-        scheme = lookup(data, ["schemes", 0], "https")
+    def load(self, data: dict):
+        title = sutil.lookup(data, ["info", "title"])
+        description = sutil.lookup(data, ["info", "description"])
+        product = sutil.lookup(data, ["info", "product"])
+        version = sutil.lookup(data, ["info", "version"])
+        host = sutil.lookup(data, ["host"])
+        path = sutil.lookup(data, ["basePath"], "/")
+        scheme = sutil.lookup(data, ["schemes", 0], "https")
         base_url = None
         if host:
             base_url = "%s://%s%s" % (scheme, host, path)
@@ -353,12 +356,13 @@ class Swagger:
             description=description,
             version=version,
             url=base_url,
+            product=product,
             content=content,
         )
 
     def get_schema_definitions(self, data):
         definitions = typesystem.SchemaDefinitions()
-        schemas = lookup(data, ["components", "schemas"], {})
+        schemas = sutil.lookup(data, ["components", "schemas"], {})
         for key, value in schemas.items():
             ref = f"#/components/schemas/{key}"
             definitions[ref] = typesystem.from_json_schema(
@@ -374,9 +378,9 @@ class Swagger:
         links = []
 
         for path, path_info in data.get("paths", {}).items():
-            operations = {key: path_info[key] for key in path_info if key in METHODS}
+            operations: dict = {key: path_info[key] for key in path_info if key in METHODS}
             for operation, operation_info in operations.items():
-                tag = lookup(operation_info, ["tags", 0])
+                tag = sutil.lookup(operation_info, ["tags", 0])
                 link = self.get_link(
                     base_url,
                     path,
@@ -446,7 +450,7 @@ class Swagger:
             fields = [field for field in fields if field.location != "formData"]
             fields.append(body_field)
 
-        encoding = lookup(operation_info, ["consumes", 0], default_encoding)
+        encoding = sutil.lookup(operation_info, ["consumes", 0], default_encoding)
 
         return Link(
             name=name,
@@ -484,5 +488,5 @@ class Swagger:
             description=description,
             required=required,
             schema=schema,
-            example=example,
+            example=example
         )

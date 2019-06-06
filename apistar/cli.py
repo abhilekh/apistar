@@ -10,13 +10,15 @@ import click
 import apistar
 from apistar.client import Client
 from apistar.client.debug import DebugSession
-from apistar.exceptions import ClientError, ErrorResponse
+from apistar.exceptions import ClientError, ErrorResponse, ParseError, ValidationError
+import apistar.dutil as dutil
+
 
 import typesystem
 
 
 def _encoding_from_filename(filename):
-    base, extension = os.path.splitext(filename)
+    _base, extension = os.path.splitext(filename)
     return {".json": "json", ".yml": "yaml", ".yaml": "yaml"}.get(extension)
 
 
@@ -81,10 +83,11 @@ def _load_config(options, verbose=False):
             content = config_file.read()
 
         try:
-            config = apistar.validate(content, format="config", encoding="yaml")
+            config = apistar.validate(content, out_format="config", encoding="yaml")
         except (ParseError, ValidationError) as exc:
-            click.echo('Errors in configuration file "apistar.yml":')
-            _echo_error(exc, content, verbose=verbose)
+            summary = 'Errors in configuration file "apistar.yml":'
+            click.echo(summary)
+            _echo_error(exc, content, summary=summary, verbose=verbose)
             sys.exit(1)
 
         # Anything passed in 'options' should override the config file.
@@ -122,19 +125,20 @@ def cli():
 @click.option("--format", type=FORMAT_ALL_CHOICES)
 @click.option("--encoding", type=ENCODING_CHOICES)
 @click.option("--verbose", "-v", is_flag=True, default=False)
-def validate(path, format, encoding, verbose):
-    options = {"schema": {"path": path, "format": format, "encoding": encoding}}
+@dutil.rename_kwargs(out_format='format')
+def validate(path, out_format, encoding, verbose):
+    options = {"schema": {"path": path, "format": out_format, "encoding": encoding}}
     config = _load_config(options, verbose=verbose)
 
     path = config["schema"]["path"]
-    format = config["schema"]["format"]
+    out_format = config["schema"]["format"]
     encoding = config["schema"]["encoding"]
 
     with open(path, "rb") as schema_file:
         content = schema_file.read()
 
     try:
-        apistar.validate(content, format=format, encoding=encoding)
+        apistar.validate(content, out_format=out_format, encoding=encoding)
     except (typesystem.ParseError, typesystem.ValidationError) as exc:
         if isinstance(exc, typesystem.ParseError):
             summary = {
@@ -149,7 +153,7 @@ def validate(path, format, encoding, verbose):
                 "openapi": "Invalid OpenAPI schema.",
                 "swagger": "Invalid Swagger schema.",
                 None: "Invalid schema.",
-            }[format]
+            }[out_format]
         _echo_error(exc, content, summary=summary, verbose=verbose)
         sys.exit(1)
 
@@ -160,7 +164,7 @@ def validate(path, format, encoding, verbose):
         "jsonschema": "Valid JSONSchema document.",
         "openapi": "Valid OpenAPI schema.",
         "swagger": "Valid Swagger schema.",
-    }[format]
+    }[out_format]
     click.echo(click.style("✓ ", fg="green") + success_summary)
 
 
@@ -172,15 +176,16 @@ def validate(path, format, encoding, verbose):
 @click.option("--theme", type=THEME_CHOICES)
 @click.option("--serve", is_flag=True, default=False)
 @click.option("--verbose", "-v", is_flag=True, default=False)
-def docs(path, format, encoding, output_dir, theme, serve, verbose):
+@dutil.rename_kwargs(out_format='format')
+def docs(path, out_format, encoding, output_dir, theme, serve, verbose):
     options = {
-        "schema": {"path": path, "format": format, "encoding": encoding},
+        "schema": {"path": path, "format": out_format, "encoding": encoding},
         "docs": {"output_dir": output_dir, "theme": theme},
     }
     config = _load_config(options, verbose=verbose)
 
     path = config["schema"]["path"]
-    format = config["schema"]["format"]
+    out_format = config["schema"]["format"]
     encoding = config["schema"]["encoding"]
     output_dir = config["docs"]["output_dir"]
     theme = config["docs"]["theme"]
@@ -197,7 +202,7 @@ def docs(path, format, encoding, output_dir, theme, serve, verbose):
 
     try:
         index_html = apistar.docs(
-            content, format=format, encoding=encoding, schema_url=schema_url, theme=theme
+            content, out_format=out_format, encoding=encoding, schema_url=schema_url, theme=theme
         )
     except (typesystem.ParseError, typesystem.ValidationError) as exc:
         if isinstance(exc, typesystem.ParseError):
@@ -262,12 +267,13 @@ def docs(path, format, encoding, output_dir, theme, serve, verbose):
 @click.option("--encoding", type=ENCODING_CHOICES)
 @click.option("--verbose", "-v", is_flag=True, default=False)
 @click.pass_context
-def request(ctx, operation, params, path, format, encoding, verbose):
-    options = {"schema": {"path": path, "format": format, "encoding": encoding}}
+@dutil.rename_kwargs(out_format='format')
+def request(ctx, operation, params, path, out_format, encoding, verbose):
+    options = {"schema": {"path": path, "format": out_format, "encoding": encoding}}
     config = _load_config(options, verbose=verbose)
 
     path = config["schema"]["path"]
-    format = config["schema"]["format"]
+    out_format = config["schema"]["format"]
     encoding = config["schema"]["encoding"]
 
     with open(path, "rb") as schema_file:
@@ -282,7 +288,7 @@ def request(ctx, operation, params, path, format, encoding, verbose):
         session = DebugSession(session)
 
     try:
-        client = Client(schema, format=format, encoding=encoding, session=session)
+        client = Client(schema, out_format=out_format, encoding=encoding, session=session)
     except (typesystem.ParseError, typesystem.ValidationError) as exc:
         if isinstance(exc, typesystem.ParseError):
             summary = {
@@ -297,7 +303,7 @@ def request(ctx, operation, params, path, format, encoding, verbose):
                 "openapi": "Invalid OpenAPI schema.",
                 "swagger": "Invalid Swagger schema.",
                 None: "Invalid schema.",
-            }[format]
+            }[out_format]
         _echo_error(exc, schema, summary=summary, verbose=verbose)
         sys.exit(1)
 

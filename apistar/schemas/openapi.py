@@ -5,6 +5,8 @@ import typesystem
 from apistar.document import Document, Field, Link, Section
 from apistar.schemas.jsonschema import JSON_SCHEMA
 
+import apistar.schemas.util as sutil
+
 SCHEMA_REF = typesystem.Object(
     properties={"$ref": typesystem.String(pattern="^#/components/schemas/")}
 )
@@ -45,6 +47,7 @@ OPEN_API = typesystem.Object(
 definitions["Info"] = typesystem.Object(
     properties={
         "title": typesystem.String(allow_blank=True),
+        "product": typesystem.String(allow_blank=True),
         "description": typesystem.Text(allow_blank=True),
         "termsOfService": typesystem.String(format="url"),
         "contact": typesystem.Reference("Contact", definitions=definitions),
@@ -331,13 +334,15 @@ definitions["SecurityScheme"] = typesystem.Object(
 METHODS = ["get", "put", "post", "delete", "options", "head", "patch", "trace"]
 
 
-def lookup(value, keys, default=None):
-    for key in keys:
-        try:
-            value = value[key]
-        except (KeyError, IndexError, TypeError):
-            return default
-    return value
+# def lookup(value: dict, keys: [list, tuple], default: typesystem.Any = None):
+#     '''Check in my nested dict.'''
+#     assert isinstance(keys, (list, tuple))
+#     for key in keys:
+#         try:
+#             value = value[key]
+#         except (KeyError, IndexError, TypeError):
+#             return default
+#     return value
 
 
 def _simple_slugify(text):
@@ -350,25 +355,26 @@ def _simple_slugify(text):
 
 
 class OpenAPI:
-    def load(self, data):
-        title = lookup(data, ["info", "title"])
-        description = lookup(data, ["info", "description"])
-        version = lookup(data, ["info", "version"])
-        base_url = lookup(data, ["servers", 0, "url"])
+    def load(self, data: dict):
+        title = sutil.lookup(data, ["info", "title"])
+        description = sutil.lookup(data, ["info", "description"])
+        product = sutil.lookup(data, ["info", "product"])
+        version = sutil.lookup(data, ["info", "version"])
+        base_url = sutil.lookup(data, ["servers", 0, "url"])
         schema_definitions = self.get_schema_definitions(data)
         content = self.get_content(data, base_url, schema_definitions)
-
         return Document(
             title=title,
             description=description,
             version=version,
             url=base_url,
+            product=product,
             content=content,
         )
 
-    def get_schema_definitions(self, data):
+    def get_schema_definitions(self, data: dict) -> typesystem.SchemaDefinitions:
         definitions = typesystem.SchemaDefinitions()
-        schemas = lookup(data, ["components", "schemas"], {})
+        schemas = sutil.lookup(data, ["components", "schemas"], {})
         for key, value in schemas.items():
             ref = f"#/components/schemas/{key}"
             definitions[ref] = typesystem.from_json_schema(
@@ -376,7 +382,7 @@ class OpenAPI:
             )
         return definitions
 
-    def get_content(self, data, base_url, schema_definitions):
+    def get_content(self, data: dict, base_url: str, schema_definitions: typesystem.SchemaDefinitions):
         """
         Return all the links in the document, layed out by tag and operationId.
         """
@@ -384,9 +390,9 @@ class OpenAPI:
         links = []
 
         for path, path_info in data.get("paths", {}).items():
-            operations = {key: path_info[key] for key in path_info if key in METHODS}
+            operations: dict = {key: path_info[key] for key in path_info if key in METHODS}
             for operation, operation_info in operations.items():
-                tag = lookup(operation_info, ["tags", 0])
+                tag = sutil.lookup(operation_info, ["tags", 0])
                 link = self.get_link(
                     base_url,
                     path,
@@ -412,7 +418,8 @@ class OpenAPI:
         return links + sections
 
     def get_link(
-        self, base_url, path, path_info, operation, operation_info, schema_definitions
+            self, base_url: str, path: str, path_info: str, operation: str, operation_info: dict,
+            schema_definitions: typesystem.SchemaDefinitions
     ):
         """
         Return a single link in the document.
@@ -427,8 +434,8 @@ class OpenAPI:
                 return None
 
         # Allow path info and operation info to override the base url.
-        base_url = lookup(path_info, ["servers", 0, "url"], default=base_url)
-        base_url = lookup(operation_info, ["servers", 0, "url"], default=base_url)
+        base_url = sutil.lookup(path_info, ["servers", 0, "url"], default=base_url)
+        base_url = sutil.lookup(operation_info, ["servers", 0, "url"], default=base_url)
 
         # Parameters are taken both from the path info, and from the operation.
         parameters = path_info.get("parameters", [])
@@ -439,7 +446,7 @@ class OpenAPI:
         ]
 
         # TODO: Handle media type generically here...
-        body_schema = lookup(
+        body_schema = sutil.lookup(
             operation_info, ["requestBody", "content", "application/json", "schema"]
         )
 
@@ -455,7 +462,7 @@ class OpenAPI:
                     body_schema, definitions=schema_definitions
                 )
                 field_name = "body"
-            field_name = lookup(
+            field_name = sutil.lookup(
                 operation_info, ["requestBody", "x-name"], default=field_name
             )
             fields += [Field(name=field_name, location="body", schema=schema)]
@@ -496,5 +503,5 @@ class OpenAPI:
             description=description,
             required=required,
             schema=schema,
-            example=example,
+            example=example
         )

@@ -2,18 +2,21 @@ import collections
 import re
 import typing
 
+import apistar.dutil as dutil
+
 LinkInfo = collections.namedtuple("LinkInfo", ["link", "name", "sections"])
 
 
+@dutil.auto_str
 class Document:
     def __init__(
-        self,
-        content: typing.Sequence[typing.Union["Section", "Link"]] = None,
-        url: str = "",
-        title: str = "",
-        description: str = "",
-        version: str = "",
-    ):
+            self,
+            content: typing.Sequence[typing.Union["Section", "Link"]] = None,
+            url: str = "",
+            title: str = "",
+            description: str = "",
+            product: str = "",
+            version: str = ""):
         content = [] if (content is None) else list(content)
 
         # Ensure all names within a document are unique.
@@ -34,6 +37,8 @@ class Document:
         self.title = title
         self.description = description
         self.version = version
+        self.product = product
+        # print("********************Printing doc", self)
 
     def get_links(self):
         return [item for item in self.content if isinstance(item, Link)]
@@ -52,13 +57,14 @@ class Document:
         return link_info_list
 
 
+@dutil.auto_str
 class Section:
     def __init__(
-        self,
-        name: str,
-        content: typing.Sequence[typing.Union["Section", "Link"]] = None,
-        title: str = "",
-        description: str = "",
+            self,
+            name: str,
+            content: typing.Sequence[typing.Union["Section", "Link"]] = None,
+            title: str = "",
+            description: str = "",
     ):
         content = [] if (content is None) else list(content)
 
@@ -99,22 +105,23 @@ class Section:
         return link_info_list
 
 
+@dutil.auto_str
 class Link:
     """
     Links represent the actions that a client may perform.
     """
 
     def __init__(
-        self,
-        url: str,
-        method: str,
-        handler: typing.Callable = None,
-        name: str = "",
-        encoding: str = "",
-        response: "Response" = None,
-        title: str = "",
-        description: str = "",
-        fields: typing.Sequence["Field"] = None,
+            self,
+            url: str,
+            method: str,
+            handler: typing.Callable = None,
+            name: str = "",
+            encoding: str = "",
+            response: "Response" = None,
+            title: str = "",
+            description: str = "",
+            fields: typing.Sequence["Field"] = None
     ):
         method = method.upper()
         fields = [] if (fields is None) else list(fields)
@@ -176,16 +183,17 @@ class Link:
         return field.schema.properties
 
 
+@dutil.auto_str
 class Field:
     def __init__(
-        self,
-        name: str,
-        location: str,
-        title: str = "",
-        description: str = "",
-        required: bool = None,
-        schema: typing.Any = None,
-        example: typing.Any = None,
+            self,
+            name: str,
+            location: str,
+            title: str = "",
+            description: str = "",
+            required: bool = None,
+            schema: typing.Any = None,
+            example: typing.Any = None,
     ):
         assert location in ("path", "query", "body", "cookie", "header", "formData")
         if required is None:
@@ -200,11 +208,13 @@ class Field:
         self.required = required
         self.schema = schema
         self.example = example
+        self.type = type(schema).__name__
 
 
+@dutil.auto_str
 class Response:
     def __init__(
-        self, encoding: str, status_code: int = 200, schema: typing.Any = None
+            self, encoding: str, status_code: int = 200, schema: typing.Any = None
     ):
         self.encoding = encoding
         self.status_code = status_code

@@ -10,7 +10,7 @@ class Client:
     def __init__(
         self,
         schema,
-        format=None,
+        out_format=None,
         encoding=None,
         auth=None,
         decoders=None,
@@ -19,7 +19,7 @@ class Client:
         session=None,
         allow_cookies=True,
     ):
-        self.document = apistar.validate(schema, format=format, encoding=encoding)
+        self.document = apistar.validate(schema, out_format=out_format, encoding=encoding)
         self.transport = self.init_transport(
             auth, decoders, encoders, headers, session, allow_cookies
         )

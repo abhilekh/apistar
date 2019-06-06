@@ -29,7 +29,7 @@ class ErrorMessage:
 
 
 class DecodeError(Exception):
-    def __init__(self, messages, summary=None):
+    def __init__(self, messages: ErrorMessage, summary=None):
         self.messages = messages
         self.summary = summary
         super().__init__(messages)
@@ -62,6 +62,7 @@ class ErrorResponse(Exception):
         self.title = title
         self.status_code = status_code
         self.content = content
+        super().__init__(title)
 
 
 class ClientError(Exception):
@@ -69,6 +70,6 @@ class ClientError(Exception):
     Raised when a client is unable to fulfil an API request.
     """
 
-    def __init__(self, messages):
+    def __init__(self, messages: ErrorMessage):
         self.messages = messages
         super().__init__(messages)

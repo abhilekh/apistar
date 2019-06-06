@@ -1,7 +1,6 @@
 <div class="sidebar">
     <h3 class="brand">
-        <a class="navbar-brand" href="#">API Star</a>
-        <!-- <a href="#">{{ document.title|default('API Star', True) }}</a> -->
+        <a class="navbar-brand" href="#">{{document.product | default(document.description.product, True)}}</a>
     </h3>
 
     <select class="menu-context-mobile">

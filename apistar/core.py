@@ -3,14 +3,13 @@ import re
 import typing
 
 import jinja2
+import typesystem
 
 from apistar.schemas.autodetermine import AUTO_DETERMINE
 from apistar.schemas.config import APISTAR_CONFIG
 from apistar.schemas.jsonschema import JSON_SCHEMA
 from apistar.schemas.openapi import OPEN_API, OpenAPI
 from apistar.schemas.swagger import SWAGGER, Swagger
-
-import typesystem
 
 
 FORMAT_CHOICES = ["config", "jsonschema", "openapi", "swagger", None]
@@ -24,10 +23,11 @@ INFER_YAML = re.compile(r"^([ \t]*#.*\n|---[ \t]*\n)*\s*[A-Za-z0-9_-]+[ \t]*:")
 INFER_JSON = re.compile(r'^\s*{\s*"[A-Za-z0-9_-]+"\s*:')
 
 
-def validate(schema: typing.Union[dict, str, bytes], format: str=None, encoding: str=None):
+def validate(
+        schema: typing.Union[dict, str, bytes], out_format: str = None, encoding: str = None):
     if not isinstance(schema, (dict, str, bytes)):
         raise ValueError(f"schema must be either str, bytes, or dict.")
-    if format not in FORMAT_CHOICES:
+    if out_format not in FORMAT_CHOICES:
         raise ValueError(f"format must be one of {FORMAT_CHOICES!r}")
     if encoding not in ENCODING_CHOICES:
         raise ValueError(f"encoding must be one of {ENCODING_CHOICES!r}")
@@ -57,11 +57,11 @@ def validate(schema: typing.Union[dict, str, bytes], format: str=None, encoding:
         token = None
         value = schema
 
-    if format is None:
+    if out_format is None:
         if "openapi" in value and "swagger" not in value:
-             format = "openapi"
+            out_format = "openapi"
         elif "swagger" in value and "openapi" not in value:
-             format = "swagger"
+            out_format = "swagger"
 
     validator = {
         "config": APISTAR_CONFIG,
@@ -69,35 +69,38 @@ def validate(schema: typing.Union[dict, str, bytes], format: str=None, encoding:
         "openapi": OPEN_API,
         "swagger": SWAGGER,
         None: AUTO_DETERMINE
-    }[format]
+    }[out_format]
 
     if token is not None:
+        # print("**token", type(token), token)
+        # print("**format", type(out_format), out_format)
+        # print("**validator", type(validator), validator)
         value = typesystem.validate_with_positions(token=token, validator=validator)
     else:
         value = validator.validate(value)
 
-    if format is None:
-        format = "swagger" if "swagger" in value else "openapi"
+    if out_format is None:
+        out_format = "swagger" if "swagger" in value else "openapi"
 
-    if format == "swagger":
+    if out_format == "swagger":
         return Swagger().load(value)
-    elif format == "openapi":
+    elif out_format == "openapi":
         return OpenAPI().load(value)
     return value
 
 
 def docs(
-    schema,
-    format=None,
-    encoding=None,
-    theme="apistar",
-    schema_url=None,
-    static_url=None,
+        schema,
+        out_format=None,
+        encoding=None,
+        theme="apistar",
+        schema_url=None,
+        static_url=None,
 ):
-    if format not in [None, "openapi", "swagger"]:
+    if out_format not in [None, "openapi", "swagger"]:
         raise ValueError('format must be either "openapi" or "swagger"')
 
-    document = validate(schema, format=format, encoding=encoding)
+    document = validate(schema, out_format=out_format, encoding=encoding)
 
     loader = jinja2.PrefixLoader(
         {

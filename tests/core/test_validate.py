@@ -12,12 +12,12 @@ def test_validate_openapi():
         "paths": {}
     }
     """
-    validate(schema, format="openapi", encoding="json")
+    validate(schema, out_format="openapi", encoding="json")
 
 
 def test_validate_openapi_datastructure():
     schema = {"openapi": "3.0.0", "info": {"title": "", "version": ""}, "paths": {}}
-    validate(schema, format="openapi")
+    validate(schema, out_format="openapi")
 
 
 def test_validate_autodetermine_openapi():
@@ -62,7 +62,7 @@ def test_validate_with_bad_format():
     }
     """
     with pytest.raises(ValueError):
-        validate(schema, format="xxx")
+        validate(schema, out_format="xxx")
 
 
 def test_validate_with_bad_encoding():
@@ -74,7 +74,7 @@ def test_validate_with_bad_encoding():
     }
     """
     with pytest.raises(ValueError):
-        validate(schema, format="openapi", encoding="xxx")
+        validate(schema, out_format="openapi", encoding="xxx")
 
 
 def test_infer_json():
@@ -88,7 +88,7 @@ def test_infer_json():
         "paths": {}
     }
     """
-    validate(schema, format="openapi")
+    validate(schema, out_format="openapi")
 
 
 def test_infer_yaml():
@@ -102,4 +102,4 @@ def test_infer_yaml():
             version: ""
         paths: {}
     """
-    validate(schema, format="openapi")
+    validate(schema, out_format="openapi")
