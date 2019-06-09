@@ -31,7 +31,9 @@
                     {% if field.description or field.schema.description %}{{ field.description or field.schema.description }}{% endif %}
                 </td>
                 <td>{% if field.schema.minimum %} Min: {{ field.schema.minimum }}<p>{% endif %}
-                    {% if field.schema.maximum %} Max: {{ field.schema.maximum }}{% endif %}
+                    {% if field.schema.maximum %} Max: {{ field.schema.maximum }}<p>{% endif %}
+                    {% if field.schema.min_length %} Min Length: {{ field.schema.min_length }}<p>{% endif %}
+                    {% if field.schema.max_length %} Max Length: {{ field.schema.max_length }}{% endif %}
                 </td>
             </tr>
             {% endfor %}
@@ -56,7 +58,9 @@
                     {% if field.description or field.schema.description %}{{ field.description or field.schema.description }}{% endif %}
                 </td>
                 <td>{% if field.schema.minimum %} Min: {{ field.schema.minimum }}<p>{% endif %}
-                    {% if field.schema.maximum %} Max: {{ field.schema.maximum }}{% endif %}
+                    {% if field.schema.maximum %} Max: {{ field.schema.maximum }}<p>{% endif %}
+                    {% if field.schema.min_length %} Min Length: {{ field.schema.min_length }}<p>{% endif %}
+                    {% if field.schema.max_length %} Max Length: {{ field.schema.max_length }}{% endif %}
                 </td>
             </tr>
             {% endfor %}

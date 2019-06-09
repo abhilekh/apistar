@@ -14,7 +14,7 @@ def auto_str(cls):
         return '%s(%s)' % (
             type(self).__name__,
             ', '.join('%s=%s' % (k, str(v) if not isinstance(v, (list, tuple))
-                                 else ",, ".join([str(item) for item in v]))
+                                 else "[{0}]".format(", ".join([str(item) for item in v])))
                       for (k, v) in vars(self).items())
         )
     cls.__str__ = __str__

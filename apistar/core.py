@@ -1,6 +1,7 @@
 import os
 import re
 import typing
+import logging
 
 import jinja2
 import typesystem
@@ -12,6 +13,7 @@ from apistar.schemas.openapi import OPEN_API, OpenAPI
 from apistar.schemas.swagger import SWAGGER, Swagger
 
 
+logger = logging.getLogger(__name__)
 FORMAT_CHOICES = ["config", "jsonschema", "openapi", "swagger", None]
 ENCODING_CHOICES = ["json", "yaml", None]
 
@@ -72,10 +74,14 @@ def validate(
     }[out_format]
 
     if token is not None:
-        # print("**token", type(token), token)
-        # print("**format", type(out_format), out_format)
-        # print("**validator", type(validator), validator)
-        value = typesystem.validate_with_positions(token=token, validator=validator)
+        try:
+            value = typesystem.validate_with_positions(
+                token=token, validator=validator)
+        except NotImplementedError:
+            logger.warning("**token %s", str(type(token)) + token)
+            logger.warning("**format %s ", str(type(out_format)) + out_format)
+            logger.warning("**validator %s", str(type(validator)) + validator)
+            raise
     else:
         value = validator.validate(value)
 

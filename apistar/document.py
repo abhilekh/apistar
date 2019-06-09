@@ -38,7 +38,6 @@ class Document:
         self.description = description
         self.version = version
         self.product = product
-        # print("********************Printing doc", self)
 
     def get_links(self):
         return [item for item in self.content if isinstance(item, Link)]
