@@ -67,6 +67,35 @@
         </tbody>
     </table>
 {% endif %}
+
+{% if link.get_header_fields() %}
+    <h4>Header Parameters</h4>
+    <p>The following parameters should be passed as header parameters.</p>
+    <table class="parameters table table-bordered table-striped">
+        <thead>
+            <tr><th>Parameter</th><th>Description</th><th>Meta</th></tr>
+        </thead>
+        <tbody>
+            {% for field in link.get_header_fields() %}
+            <tr>
+                <td class="parameter-name"><code><span>{{ field.name }}</span></code>
+                    {% if field.required %} <span class="badge badge-warning">required</span>{% endif %}
+                    {% if field.type %} <span class="badge badge-info">{{ field.type }}</span> {% endif %}
+                </td>
+                <td>
+                    {% if field.description or field.schema.description %}{{ field.description or field.schema.description }}{% endif %}
+                </td>
+                <td>{% if field.schema.minimum %} Min: {{ field.schema.minimum }}<p>{% endif %}
+                    {% if field.schema.maximum %} Max: {{ field.schema.maximum }}<p>{% endif %}
+                    {% if field.schema.min_length %} Min Length: {{ field.schema.min_length }}<p>{% endif %}
+                    {% if field.schema.max_length %} Max Length: {{ field.schema.max_length }}{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}
+
 {% if link.get_body_field() %}
     {% set field=link.get_body_field() %}
     {% set expanded=link.get_expanded_body() %}

@@ -1,0 +1,29 @@
+<pre class="highlight java {% if not is_selected %}d-none{% endif %}" data-language="java"><code>import java.util.Map
+import java.util.HashMap
+import net.dongliu.requests.Requests
+import net.dongliu.requests.RawResponse
+
+String url = "{{ link.url }}"{% raw %}
+{% endraw %}
+{%- if link.get_query_fields() %}
+Map&lt;String, Object&gt; params = new HashMap&lt;&gt;();
+{% for field in link.get_query_fields() %}params.put("{{ field.name }}", ...);
+{% endfor %}
+{% endif %}
+{%- if link.get_header_fields() %}
+Map&lt;String, Object&gt; headers = new HashMap&lt;&gt;();
+{% for field in link.get_header_fields() %}headers.put("{{ field.name }}", ...);
+{% endfor %}
+{% endif %}
+{%- if link.get_body_field() and not link.get_expanded_body() %}data = ...
+{% endif %}
+{%- if link.get_body_field() and link.get_expanded_body() %}data = {
+{% for key, schema in link.get_expanded_body().items() %}    "{{ key }}": ...{% if not loop.last %},{% endif %}
+{% endfor %}}
+{% endif %}
+RawResponse response = Requests.{{ link.method.lower() }}(url)
+    {% if link.get_header_fields() %}.headers(headers){% endif %}
+    {% if link.get_query_fields() %}.params(params){% endif %}{% if link.get_body_field() %}, json=data{% endif %}.send()
+response.statusCode()
+System.out.println(response.readToText())
+</code></pre>

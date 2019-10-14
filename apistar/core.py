@@ -133,7 +133,7 @@ def docs(
     template = env.get_template(theme + "/index.html")
     return template.render(
         document=document,
-        langs=["javascript", "python"],
+        langs=["javascript", "python", "java"],
         code_style=None,
         static_url=static_url_func,
         schema_url=schema_url,

@@ -163,11 +163,18 @@ class Link:
         self.description = description
         self.fields = fields
 
-    def get_path_fields(self):
-        return [field for field in self.fields if field.location == "path"]
+    def __get_type_fields__(self, s_type: str) -> typing.List:
+        assert isinstance(s_type, str)
+        return [field for field in self.fields if field.location == s_type]
 
-    def get_query_fields(self):
-        return [field for field in self.fields if field.location == "query"]
+    def get_path_fields(self) -> typing.List:
+        return self.__get_type_fields__("path")
+
+    def get_query_fields(self) -> typing.List:
+        return self.__get_type_fields__("query")
+
+    def get_header_fields(self) -> typing.List:
+        return self.__get_type_fields__("header")
 
     def get_body_field(self):
         for field in self.fields:

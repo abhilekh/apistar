@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, ParseResult
 
 import typesystem
 from apistar.document import Document, Field, Link, Section
@@ -10,9 +10,11 @@ import apistar.schemas.util as sutil
 SCHEMA_REF = typesystem.Object(
     properties={"$ref": typesystem.String(pattern="^#/components/schemas/")}
 )
+
 REQUESTBODY_REF = typesystem.Object(
     properties={"$ref": typesystem.String(pattern="^#/components/requestBodies/")}
 )
+
 RESPONSE_REF = typesystem.Object(
     properties={"$ref": typesystem.String(pattern="^#/components/responses/")}
 )
@@ -49,10 +51,11 @@ definitions["Info"] = typesystem.Object(
         "title": typesystem.String(allow_blank=True),
         "product": typesystem.String(allow_blank=True),
         "description": typesystem.Text(allow_blank=True),
-        "termsOfService": typesystem.String(format="url"),
+        "termsOfService": typesystem.URL(),
         "contact": typesystem.Reference("Contact", definitions=definitions),
         "license": typesystem.Reference("License", definitions=definitions),
         "version": typesystem.String(allow_blank=True),
+        "site_favicon": typesystem.String(allow_blank=True),
     },
     pattern_properties={"^x-": typesystem.Any()},
     additional_properties=False,
@@ -62,15 +65,15 @@ definitions["Info"] = typesystem.Object(
 definitions["Contact"] = typesystem.Object(
     properties={
         "name": typesystem.String(allow_blank=True),
-        "url": typesystem.String(format="url"),
-        "email": typesystem.String(format="email"),
+        "url": typesystem.URL(),
+        "email": typesystem.Email(),
     },
     pattern_properties={"^x-": typesystem.Any()},
     additional_properties=False,
 )
 
 definitions["License"] = typesystem.Object(
-    properties={"name": typesystem.String(), "url": typesystem.String(format="url")},
+    properties={"name": typesystem.String(), "url": typesystem.URL()},
     required=["name"],
     pattern_properties={"^x-": typesystem.Any()},
     additional_properties=False,
@@ -78,7 +81,7 @@ definitions["License"] = typesystem.Object(
 
 definitions["Server"] = typesystem.Object(
     properties={
-        "url": typesystem.String(),
+        "url": typesystem.URL(),
         "description": typesystem.Text(allow_blank=True),
         "variables": typesystem.Object(
             additional_properties=typesystem.Reference(
@@ -167,7 +170,7 @@ definitions["Operation"] = typesystem.Object(
 definitions["ExternalDocumentation"] = typesystem.Object(
     properties={
         "description": typesystem.Text(allow_blank=True),
-        "url": typesystem.String(format="url"),
+        "url": typesystem.URL(),
     },
     pattern_properties={"^x-": typesystem.Any()},
     additional_properties=False,
@@ -466,6 +469,9 @@ class OpenAPI:
                 operation_info, ["requestBody", "x-name"], default=field_name
             )
             fields += [Field(name=field_name, location="body", schema=schema)]
+
+        if isinstance(base_url, ParseResult):
+            base_url = base_url.geturl()
 
         return Link(
             name=name,
